@@ -4,7 +4,7 @@ import cvzone
 import math
 import numpy as np
 
-#cap =cv2.VideoCapture('videos/road.mp4') # cargar video
+
 cap =cv2.VideoCapture('videos/carros.mp4') # cargar video
 
 modelo = YOLO('yolo weigths/yolov8n.pt')  # modelo de deteccion de objteos

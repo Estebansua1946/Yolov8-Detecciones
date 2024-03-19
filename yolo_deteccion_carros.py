@@ -3,9 +3,10 @@ import cv2
 import cvzone
 import math
 import numpy as np
+from sort import *
 
 
-cap =cv2.VideoCapture('videos/carros.mp4') # cargar video
+cap =cv2.VideoCapture('videos/carros_720.mp4') # cargar video
 
 modelo = YOLO('yolo weigths/yolov8n.pt')  # modelo de deteccion de objteos
 
@@ -22,15 +23,20 @@ classNames = ["person", "bicycle", "car", "motorbike", "aeroplane", "bus", "trai
               "teddy bear", "hair drier", "toothbrush"
               ]
 
-mask = cv2.imread('imagenes/prueba2.png') #cargamos la mascara para delimitar una zona de interes
+mask = cv2.imread('imagenes/mascara720.png') #cargamos la mascara para delimitar una zona de interes
 
+#llamamos el rastreador 
+rastreador = Sort(max_age=20, min_hits=3, iou_threshold=0.3)
 
 while True:
     
     success, frame =cap.read()
     zona= cv2.bitwise_and(frame,mask) #se crea la zona de interes
   
-    result = modelo(zona,stream = True) 
+    result = modelo(zona,stream = True)
+
+    #lista de detecciones
+    detecciones = np.empty((0, 5)) 
     
     #encontramos los puntos x, y , alto y ancho de las detecciones 
     for r in result:
@@ -47,11 +53,20 @@ while True:
             cls = int(box.cls[0])
 
             if classNames[cls] == "car" and conf > 0.3:
-                    cvzone.cornerRect(frame,(x1,y1,w,h)) #dibujar rectangulo con cvzone
-                    cvzone.putTextRect(frame, f'{classNames[cls]} {conf}',(max(0,x1), max(35,y1)),scale= 0.7, thickness=1) #imprimimos en pantalla el valor de confianza
-            #cvzone.putTextRect(frame, f'{cls} {conf}',(max(0,x1), max(35,y1)),scale= 0.7, thickness=1)
+                    cvzone.cornerRect(frame,(x1,y1,w,h),l =9, t =3) #dibujar rectangulo con cvzone
+                    cvzone.putTextRect(frame, f'{classNames[cls]} {conf}',(max(0,x1), max(35,y1)),scale= 0.5, thickness=1, offset = 3) #imprimimos en pantalla el valor de confianza
+                    currentArray =np.array([x1, y1, x2, y2, conf]) # matriz actual de deteccion
+                    detecciones = np.vstack((detecciones, currentArray)) # añadimos deteccion a la lista de detecciones
+            # cvzone.putTextRect(frame, f'{cls} {conf}',(max(0,x1), max(35,y1)),scale= 0.7, thickness=1)
             #print(conf)
-        
+
+    resultados_rastreador = rastreador.update(detecciones)
+
+    #Recorremos la lista de resultado rastreador para obtener los ids
+    for resultado in resultados_rastreador:
+         x1, y1, x2, y2, Id = resultado
+         print(resultado)
+
     cv2.imshow("video",frame)
     #cv2.imshow("region",zona)
-    cv2.waitKey(1)
+    cv2.waitKey(0)
